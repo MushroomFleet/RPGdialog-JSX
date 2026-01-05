@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG Dialogue System - Interactive Demo</title>
+  
+  <!-- React -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+    
+    /* Demo Background Scene */
+    .demo-scene {
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at 20% 80%, rgba(74, 158, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+      z-index: 0;
+    }
+    
+    .demo-scene::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(255,255,255,0.02) 1px, transparent 1px),
+        radial-gradient(circle at 75% 75%, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    
+    /* Control Panel */
+    .control-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(15, 15, 30, 0.95);
+      border: 2px solid #4a9eff;
+      border-radius: 16px;
+      padding: 24px;
+      z-index: 100;
+      width: 320px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(74, 158, 255, 0.2);
+    }
+    
+    .control-panel h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      color: #ffd700;
+      margin-bottom: 20px;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    
+    .control-section {
+      margin-bottom: 20px;
+    }
+    
+    .control-section label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4a9eff;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 12px 16px;
+      border: 2px solid #4a9eff;
+      background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex: 1;
+      min-width: 100px;
+    }
+    
+    .btn:hover {
+      background: linear-gradient(145deg, #2a2a4e, #1a1a2e);
+      box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    .btn.active {
+      background: linear-gradient(145deg, #4a9eff, #3a7ecc);
+      border-color: #ffd700;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    
+    .btn.primary {
+      background: linear-gradient(145deg, #ff6b35, #e55a2b);
+      border-color: #ffd700;
+    }
+    
+    .btn.primary:hover {
+      box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+    }
+    
+    /* Character selector */
+    .character-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    
+    .character-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .character-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: #4a9eff;
+    }
+    
+    .character-btn.selected {
+      border-color: #ffd700;
+      background: rgba(255, 215, 0, 0.1);
+    }
+    
+    .character-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+    
+    .character-name {
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    /* Title Banner */
+    .title-banner {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+    }
+    
+    .title-banner h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: #ffd700;
+      text-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.5),
+        2px 2px 0 #0a0a0f;
+      margin-bottom: 8px;
+    }
+    
+    .title-banner p {
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+    }
+    
+    /* Status indicator */
+    .status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      text-align: center;
+      color: #4a9eff;
+    }
+    
+    /* Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Inject RPG Dialogue Styles */
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    
+    @keyframes borderGlow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+    
+    @keyframes slideInToast {
+      from {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    @keyframes slideOutToast {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+    }
+    
+    @keyframes slideInCharacter {
+      from {
+        opacity: 0;
+        transform: translateX(-100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    @keyframes slideInDialogue {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    @keyframes textCursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    .rpg-dialogue-cursor::after {
+      content: '▌';
+      animation: textCursor 0.8s ease-in-out infinite;
+      color: #4a9eff;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+    
+    // ========================================================================
+    // INLINE ASSET GENERATION (SVG-based demo characters)
+    // ========================================================================
+    
+    // Generate a simple pixel-art style portrait as SVG data URL
+    const generatePortrait = (color, expression = 'neutral', frame = 0) => {
+      const colors = {
+        blue: { hair: '#4a9eff', skin: '#ffd4b8', accent: '#2563eb' },
+        red: { hair: '#ff6b35', skin: '#ffe4d4', accent: '#dc2626' },
+        green: { hair: '#22c55e', skin: '#ffd4b8', accent: '#16a34a' },
+        purple: { hair: '#a855f7', skin: '#ffe4d4', accent: '#7c3aed' },
+      };
+      
+      const c = colors[color] || colors.blue;
+      
+      // Mouth animation frames
+      const mouths = {
+        neutral: ['M 28,52 Q 32,54 36,52', 'M 28,52 Q 32,55 36,52', 'M 28,52 Q 32,54 36,52'],
+        happy: ['M 26,50 Q 32,58 38,50', 'M 26,51 Q 32,56 38,51', 'M 26,50 Q 32,58 38,50'],
+        angry: ['M 28,54 Q 32,50 36,54', 'M 28,53 Q 32,51 36,53', 'M 28,54 Q 32,50 36,54'],
+      };
+      
+      // Eye animation (blink occasionally)
+      const eyeHeight = frame === 2 ? 1 : 4;
+      
+      const mouth = mouths[expression]?.[frame % 3] || mouths.neutral[0];
+      
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+          <!-- Background -->
+          <rect width="64" height="64" fill="#1a1a2e"/>
+          
+          <!-- Hair back -->
+          <ellipse cx="32" cy="24" rx="22" ry="18" fill="${c.hair}"/>
+          
+          <!-- Face -->
+          <ellipse cx="32" cy="34" rx="16" ry="18" fill="${c.skin}"/>
+          
+          <!-- Hair front -->
+          <path d="M 14,24 Q 14,12 32,10 Q 50,12 50,24 Q 48,20 32,18 Q 16,20 14,24" fill="${c.hair}"/>
+          
+          <!-- Eyes -->
+          <ellipse cx="24" cy="32" rx="3" ry="${eyeHeight}" fill="#1a1a2e"/>
+          <ellipse cx="40" cy="32" rx="3" ry="${eyeHeight}" fill="#1a1a2e"/>
+          
+          <!-- Eye shine -->
+          ${eyeHeight > 2 ? `
+            <circle cx="25" cy="31" r="1" fill="#fff"/>
+            <circle cx="41" cy="31" r="1" fill="#fff"/>
+          ` : ''}
+          
+          <!-- Mouth -->
+          <path d="${mouth}" stroke="#1a1a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+          
+          <!-- Blush -->
+          <ellipse cx="18" cy="40" rx="4" ry="2" fill="${c.accent}" opacity="0.3"/>
+          <ellipse cx="46" cy="40" rx="4" ry="2" fill="${c.accent}" opacity="0.3"/>
+        </svg>
+      `;
+      
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
+    
+    // Generate a full character image as SVG data URL
+    const generateCharacterImage = (color, pose = 'default') => {
+      const colors = {
+        blue: { hair: '#4a9eff', skin: '#ffd4b8', outfit: '#1e40af', accent: '#ffd700' },
+        red: { hair: '#ff6b35', skin: '#ffe4d4', outfit: '#991b1b', accent: '#ffd700' },
+        green: { hair: '#22c55e', skin: '#ffd4b8', outfit: '#166534', accent: '#ffd700' },
+        purple: { hair: '#a855f7', skin: '#ffe4d4', outfit: '#581c87', accent: '#ffd700' },
+      };
+      
+      const c = colors[color] || colors.blue;
+      
+      // Different arm positions for poses
+      const poses = {
+        default: {
+          leftArm: 'M 85,200 Q 60,240 70,300',
+          rightArm: 'M 165,200 Q 190,240 180,300',
+          expression: 'neutral',
+        },
+        excited: {
+          leftArm: 'M 85,200 Q 40,180 30,140',
+          rightArm: 'M 165,200 Q 210,180 220,140',
+          expression: 'happy',
+        },
+        thinking: {
+          leftArm: 'M 85,200 Q 60,240 70,300',
+          rightArm: 'M 165,200 Q 200,180 170,120',
+          expression: 'neutral',
+        },
+        angry: {
+          leftArm: 'M 85,200 Q 50,220 40,260',
+          rightArm: 'M 165,200 Q 200,220 210,260',
+          expression: 'angry',
+        },
+      };
+      
+      const p = poses[pose] || poses.default;
+      
+      const expressions = {
+        neutral: { mouth: 'M 105,100 Q 125,110 145,100', eyebrow: 0 },
+        happy: { mouth: 'M 100,100 Q 125,120 150,100', eyebrow: -3 },
+        angry: { mouth: 'M 105,108 Q 125,100 145,108', eyebrow: 5 },
+      };
+      
+      const exp = expressions[p.expression] || expressions.neutral;
+      
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 450">
+          <!-- Drop shadow -->
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.5"/>
+            </filter>
+          </defs>
+          
+          <g filter="url(#shadow)">
+            <!-- Body/Outfit -->
+            <path d="M 80,160 Q 60,200 70,350 L 100,450 L 150,450 L 180,350 Q 190,200 170,160 Q 125,140 80,160" 
+                  fill="${c.outfit}"/>
+            
+            <!-- Outfit details -->
+            <path d="M 100,180 L 125,400 L 150,180" stroke="${c.accent}" stroke-width="3" fill="none"/>
+            <circle cx="125" cy="175" r="8" fill="${c.accent}"/>
+            
+            <!-- Arms -->
+            <path d="${p.leftArm}" stroke="${c.skin}" stroke-width="20" fill="none" stroke-linecap="round"/>
+            <path d="${p.rightArm}" stroke="${c.skin}" stroke-width="20" fill="none" stroke-linecap="round"/>
+            
+            <!-- Hands -->
+            <circle cx="${p.leftArm.split(' ').pop().split(',')[0]}" cy="${p.leftArm.split(' ').pop().split(',')[1]}" r="15" fill="${c.skin}"/>
+            <circle cx="${p.rightArm.split(' ').pop().split(',')[0]}" cy="${p.rightArm.split(' ').pop().split(',')[1]}" r="15" fill="${c.skin}"/>
+            
+            <!-- Neck -->
+            <rect x="110" y="130" width="30" height="35" fill="${c.skin}"/>
+            
+            <!-- Head -->
+            <ellipse cx="125" cy="80" rx="50" ry="55" fill="${c.skin}"/>
+            
+            <!-- Hair back -->
+            <ellipse cx="125" cy="50" rx="55" ry="45" fill="${c.hair}"/>
+            
+            <!-- Hair front/bangs -->
+            <path d="M 70,50 Q 70,20 125,15 Q 180,20 180,50 Q 175,35 125,30 Q 75,35 70,50" fill="${c.hair}"/>
+            <path d="M 85,55 Q 90,40 110,45" fill="${c.hair}"/>
+            <path d="M 165,55 Q 160,40 140,45" fill="${c.hair}"/>
+            
+            <!-- Eyes -->
+            <ellipse cx="100" cy="75" rx="8" ry="10" fill="#1a1a2e"/>
+            <ellipse cx="150" cy="75" rx="8" ry="10" fill="#1a1a2e"/>
+            <circle cx="103" cy="72" r="3" fill="#fff"/>
+            <circle cx="153" cy="72" r="3" fill="#fff"/>
+            
+            <!-- Eyebrows -->
+            <path d="M 85,${60 + exp.eyebrow} Q 100,${55 + exp.eyebrow} 115,${60 + exp.eyebrow}" 
+                  stroke="${c.hair}" stroke-width="4" fill="none" stroke-linecap="round"/>
+            <path d="M 135,${60 + exp.eyebrow} Q 150,${55 + exp.eyebrow} 165,${60 + exp.eyebrow}" 
+                  stroke="${c.hair}" stroke-width="4" fill="none" stroke-linecap="round"/>
+            
+            <!-- Mouth -->
+            <path d="${exp.mouth}" stroke="#c97878" stroke-width="3" fill="none" stroke-linecap="round"/>
+            
+            <!-- Blush -->
+            <ellipse cx="75" cy="90" rx="10" ry="5" fill="#ffb6b6" opacity="0.5"/>
+            <ellipse cx="175" cy="90" rx="10" ry="5" fill="#ffb6b6" opacity="0.5"/>
+          </g>
+        </svg>
+      `;
+      
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    };
+    
+    // ========================================================================
+    // CHARACTER DATA
+    // ========================================================================
+    
+    const characters = {
+      aria: {
+        name: 'Aria',
+        color: 'blue',
+        dialogues: {
+          toast: [
+            "Hey! Watch out for that enemy ahead!",
+            "Do a barrel roll to dodge incoming fire!",
+            "Great flying! Keep it up!",
+          ],
+          fullscreen: [
+            { text: "Welcome, traveler. I've been expecting you.", pose: 'default' },
+            { text: "The ancient prophecy speaks of one who would come from beyond the mountains...", pose: 'thinking' },
+            { text: "Could it really be you? The one destined to save our world?!", pose: 'excited' },
+          ],
+        },
+      },
+      rex: {
+        name: 'Rex',
+        color: 'red',
+        dialogues: {
+          toast: [
+            "Enemy squadron incoming at 3 o'clock!",
+            "I've got your back! Let's take 'em down!",
+            "Haha! That's what I'm talking about!",
+          ],
+          fullscreen: [
+            { text: "So you're the new recruit, huh? You don't look like much.", pose: 'default' },
+            { text: "But I've seen plenty of underdogs prove themselves in battle...", pose: 'thinking' },
+            { text: "Show me what you've got! Don't hold back!", pose: 'angry' },
+          ],
+        },
+      },
+      sage: {
+        name: 'Sage',
+        color: 'green',
+        dialogues: {
+          toast: [
+            "Scanning area... Multiple heat signatures detected.",
+            "Recommend evasive maneuvers.",
+            "Analysis complete. Optimal path calculated.",
+          ],
+          fullscreen: [
+            { text: "Greetings. I am Sage, keeper of ancient knowledge.", pose: 'default' },
+            { text: "The texts foretold your arrival centuries ago...", pose: 'thinking' },
+            { text: "Your journey will be perilous, but I sense great potential within you!", pose: 'excited' },
+          ],
+        },
+      },
+      luna: {
+        name: 'Luna',
+        color: 'purple',
+        dialogues: {
+          toast: [
+            "The stars whisper of danger...",
+            "Trust your instincts. They won't fail you.",
+            "Beautiful flying! The cosmos smiles upon you.",
+          ],
+          fullscreen: [
+            { text: "The moonlight reveals what daylight conceals...", pose: 'default' },
+            { text: "I have watched you from afar, young one. Your spirit shines brightly.", pose: 'thinking' },
+            { text: "Together, we shall pierce the veil of darkness!", pose: 'excited' },
+          ],
+        },
+      },
+    };
+    
+    // ========================================================================
+    // RPG DIALOGUE COMPONENT (Embedded)
+    // ========================================================================
+    
+    const styles = {
+      container: {
+        position: 'fixed',
+        zIndex: 9999,
+        fontFamily: '"Press Start 2P", "Courier New", monospace',
+        pointerEvents: 'none',
+      },
+      toastContainer: {
+        bottom: '20px',
+        left: '20px',
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: '12px',
+        maxWidth: '420px',
+      },
+      fullscreenContainer: {
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)',
+      },
+      portraitFrame: {
+        width: '80px',
+        height: '80px',
+        border: '4px solid #ffd700',
+        borderRadius: '8px',
+        background: 'linear-gradient(145deg, #1a1a2e 0%, #0f0f1a 100%)',
+        boxShadow: '0 0 20px rgba(255, 215, 0, 0.3), inset 0 0 10px rgba(0,0,0,0.5)',
+        overflow: 'hidden',
+        flexShrink: 0,
+        position: 'relative',
+      },
+      portraitGlow: {
+        position: 'absolute',
+        inset: '-4px',
+        border: '4px solid transparent',
+        borderRadius: '12px',
+        background: 'linear-gradient(45deg, #ffd700, #ff6b35, #ffd700) border-box',
+        mask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+        WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
+        maskComposite: 'exclude',
+        WebkitMaskComposite: 'xor',
+        animation: 'borderGlow 2s linear infinite',
+      },
+      portraitImage: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+      },
+      toastBubble: {
+        background: 'linear-gradient(145deg, #1a1a2e 0%, #0f0f1a 100%)',
+        border: '3px solid #4a9eff',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        color: '#fff',
+        fontSize: '11px',
+        lineHeight: '1.6',
+        boxShadow: '0 4px 20px rgba(74, 158, 255, 0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+        position: 'relative',
+        maxWidth: '300px',
+        pointerEvents: 'auto',
+      },
+      bubbleArrow: {
+        position: 'absolute',
+        left: '-12px',
+        bottom: '20px',
+        width: 0,
+        height: 0,
+        borderTop: '10px solid transparent',
+        borderBottom: '10px solid transparent',
+        borderRight: '12px solid #4a9eff',
+      },
+      bubbleArrowInner: {
+        position: 'absolute',
+        left: '-8px',
+        bottom: '22px',
+        width: 0,
+        height: 0,
+        borderTop: '8px solid transparent',
+        borderBottom: '8px solid transparent',
+        borderRight: '10px solid #1a1a2e',
+      },
+      nameTag: {
+        position: 'absolute',
+        top: '-14px',
+        left: '12px',
+        background: 'linear-gradient(145deg, #ff6b35, #e55a2b)',
+        padding: '4px 12px',
+        borderRadius: '4px',
+        fontSize: '9px',
+        fontWeight: 'bold',
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        boxShadow: '0 2px 8px rgba(255, 107, 53, 0.4)',
+      },
+      characterContainer: {
+        position: 'absolute',
+        bottom: '180px',
+        left: '5%',
+        maxWidth: '35%',
+        maxHeight: '60%',
+        pointerEvents: 'none',
+      },
+      characterImage: {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        objectFit: 'contain',
+        filter: 'drop-shadow(0 0 30px rgba(0,0,0,0.8))',
+      },
+      dialogueBox: {
+        margin: '20px',
+        marginLeft: 'auto',
+        width: '55%',
+        maxWidth: '700px',
+        background: 'linear-gradient(145deg, rgba(15, 15, 30, 0.95) 0%, rgba(10, 10, 20, 0.98) 100%)',
+        border: '4px solid #ffd700',
+        borderRadius: '16px',
+        padding: '24px 32px',
+        color: '#fff',
+        fontSize: '13px',
+        lineHeight: '1.8',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 30px rgba(255, 215, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+        position: 'relative',
+        pointerEvents: 'auto',
+      },
+      fullscreenNameTag: {
+        position: 'absolute',
+        top: '-18px',
+        left: '24px',
+        background: 'linear-gradient(145deg, #ffd700, #ffaa00)',
+        padding: '8px 20px',
+        borderRadius: '8px',
+        fontSize: '11px',
+        fontWeight: 'bold',
+        color: '#1a1a2e',
+        textTransform: 'uppercase',
+        letterSpacing: '2px',
+        boxShadow: '0 4px 15px rgba(255, 215, 0, 0.5)',
+      },
+      textContent: {
+        minHeight: '50px',
+      },
+      continueIndicator: {
+        position: 'absolute',
+        bottom: '12px',
+        right: '20px',
+        fontSize: '9px',
+        color: '#4a9eff',
+        animation: 'bounce 1s ease-in-out infinite',
+      },
+      skipHint: {
+        position: 'absolute',
+        bottom: '12px',
+        left: '20px',
+        fontSize: '8px',
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '1px',
+      },
+    };
+    
+    // Typewriter hook
+    const useTypewriter = (text, speed = 30, enabled = true) => {
+      const [displayedText, setDisplayedText] = useState('');
+      const [isComplete, setIsComplete] = useState(false);
+      const indexRef = useRef(0);
+      
+      useEffect(() => {
+        if (!enabled) {
+          setDisplayedText(text);
+          setIsComplete(true);
+          return;
+        }
+        
+        setDisplayedText('');
+        setIsComplete(false);
+        indexRef.current = 0;
+        
+        const timer = setInterval(() => {
+          if (indexRef.current < text.length) {
+            setDisplayedText(text.slice(0, indexRef.current + 1));
+            indexRef.current++;
+          } else {
+            setIsComplete(true);
+            clearInterval(timer);
+          }
+        }, speed);
+        
+        return () => clearInterval(timer);
+      }, [text, speed, enabled]);
+      
+      const skip = useCallback(() => {
+        setDisplayedText(text);
+        setIsComplete(true);
+      }, [text]);
+      
+      return { displayedText, isComplete, skip };
+    };
+    
+    // Portrait animation hook
+    const usePortraitAnimation = (frames, frameRate = 150, enabled = true) => {
+      const [currentFrame, setCurrentFrame] = useState(0);
+      
+      useEffect(() => {
+        if (!enabled || !frames || frames.length <= 1) return;
+        
+        const timer = setInterval(() => {
+          setCurrentFrame(prev => (prev + 1) % frames.length);
+        }, frameRate);
+        
+        return () => clearInterval(timer);
+      }, [frames, frameRate, enabled]);
+      
+      return frames && frames.length > 0 ? frames[currentFrame] : null;
+    };
+    
+    // Toast Dialogue Component
+    const ToastDialogue = ({ character, text, portraitFrames, onComplete, position = 'bottom-left' }) => {
+      const { displayedText, isComplete, skip } = useTypewriter(text, 35);
+      const currentPortrait = usePortraitAnimation(portraitFrames, 180, !isComplete);
+      const [isExiting, setIsExiting] = useState(false);
+      
+      const handleClick = () => {
+        if (!isComplete) {
+          skip();
+        } else {
+          setIsExiting(true);
+          setTimeout(() => onComplete?.(), 300);
+        }
+      };
+      
+      return (
+        <div
+          style={{
+            ...styles.container,
+            ...styles.toastContainer,
+            animation: isExiting ? 'slideOutToast 0.3s ease-out forwards' : 'slideInToast 0.4s ease-out',
+          }}
+          onClick={handleClick}
+        >
+          <div style={styles.portraitFrame}>
+            <div style={styles.portraitGlow} />
+            {currentPortrait && (
+              <img src={currentPortrait} alt={character} style={styles.portraitImage} />
+            )}
+          </div>
+          
+          <div style={styles.toastBubble}>
+            <div style={styles.bubbleArrow} />
+            <div style={styles.bubbleArrowInner} />
+            <div style={styles.nameTag}>{character}</div>
+            <div className={!isComplete ? 'rpg-dialogue-cursor' : ''}>
+              {displayedText}
+            </div>
+            {isComplete && <div style={styles.continueIndicator}>▼</div>}
+            {!isComplete && <div style={styles.skipHint}>CLICK TO SKIP</div>}
+          </div>
+        </div>
+      );
+    };
+    
+    // Fullscreen Dialogue Component
+    const FullscreenDialogue = ({ character, text, characterImage, onComplete }) => {
+      const { displayedText, isComplete, skip } = useTypewriter(text, 35);
+      const [isExiting, setIsExiting] = useState(false);
+      
+      const handleClick = () => {
+        if (!isComplete) {
+          skip();
+        } else {
+          setIsExiting(true);
+          setTimeout(() => onComplete?.(), 400);
+        }
+      };
+      
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.code === 'Space' || e.code === 'Enter') {
+            e.preventDefault();
+            handleClick();
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [isComplete]);
+      
+      return (
+        <div
+          style={{
+            ...styles.container,
+            ...styles.fullscreenContainer,
+            animation: isExiting ? 'fadeOut 0.4s ease-out forwards' : 'fadeIn 0.3s ease-out',
+          }}
+          onClick={handleClick}
+        >
+          {characterImage && (
+            <div style={{ ...styles.characterContainer, animation: 'slideInCharacter 0.5s ease-out' }}>
+              <img src={characterImage} alt={character} style={styles.characterImage} />
+            </div>
+          )}
+          
+          <div style={{ ...styles.dialogueBox, animation: 'slideInDialogue 0.4s ease-out 0.1s both' }}>
+            <div style={styles.fullscreenNameTag}>{character}</div>
+            <div style={styles.textContent} className={!isComplete ? 'rpg-dialogue-cursor' : ''}>
+              {displayedText}
+            </div>
+            {isComplete && <div style={styles.continueIndicator}>▼ CONTINUE</div>}
+            <div style={styles.skipHint}>{isComplete ? 'CLICK OR SPACE' : 'CLICK TO SKIP'}</div>
+          </div>
+        </div>
+      );
+    };
+    
+    // ========================================================================
+    // DEMO APP
+    // ========================================================================
+    
+    const DemoApp = () => {
+      const [mode, setMode] = useState('toast');
+      const [selectedCharacter, setSelectedCharacter] = useState('aria');
+      const [dialogueIndex, setDialogueIndex] = useState(-1);
+      const [isPlaying, setIsPlaying] = useState(false);
+      
+      const char = characters[selectedCharacter];
+      
+      // Generate portrait frames for current character
+      const portraitFrames = [
+        generatePortrait(char.color, 'neutral', 0),
+        generatePortrait(char.color, 'neutral', 1),
+        generatePortrait(char.color, 'neutral', 2),
+      ];
+      
+      const startDialogue = () => {
+        setDialogueIndex(0);
+        setIsPlaying(true);
+      };
+      
+      const handleDialogueComplete = () => {
+        const dialogues = mode === 'toast' ? char.dialogues.toast : char.dialogues.fullscreen;
+        if (dialogueIndex < dialogues.length - 1) {
+          setDialogueIndex(prev => prev + 1);
+        } else {
+          setDialogueIndex(-1);
+          setIsPlaying(false);
+        }
+      };
+      
+      const getCurrentDialogue = () => {
+        if (dialogueIndex < 0) return null;
+        const dialogues = mode === 'toast' ? char.dialogues.toast : char.dialogues.fullscreen;
+        return dialogues[dialogueIndex];
+      };
+      
+      const currentDialogue = getCurrentDialogue();
+      
+      return (
+        <>
+          {/* Background Scene */}
+          <div className="demo-scene" />
+          
+          {/* Title */}
+          <div className="title-banner">
+            <h1>RPG DIALOGUE</h1>
+            <p>Interactive Demo • Click dialogue to advance</p>
+          </div>
+          
+          {/* Control Panel */}
+          <div className="control-panel">
+            <h2>⚙ CONTROLS</h2>
+            
+            <div className="control-section">
+              <label>Mode</label>
+              <div className="btn-group">
+                <button 
+                  className={`btn ${mode === 'toast' ? 'active' : ''}`}
+                  onClick={() => { setMode('toast'); setDialogueIndex(-1); setIsPlaying(false); }}
+                >
+                  Toast
+                </button>
+                <button 
+                  className={`btn ${mode === 'fullscreen' ? 'active' : ''}`}
+                  onClick={() => { setMode('fullscreen'); setDialogueIndex(-1); setIsPlaying(false); }}
+                >
+                  Fullscreen
+                </button>
+              </div>
+            </div>
+            
+            <div className="control-section">
+              <label>Character</label>
+              <div className="character-grid">
+                {Object.entries(characters).map(([key, c]) => (
+                  <div
+                    key={key}
+                    className={`character-btn ${selectedCharacter === key ? 'selected' : ''}`}
+                    onClick={() => { setSelectedCharacter(key); setDialogueIndex(-1); setIsPlaying(false); }}
+                  >
+                    <img 
+                      src={generatePortrait(c.color, 'happy', 0)} 
+                      alt={c.name}
+                      className="character-avatar"
+                    />
+                    <span className="character-name">{c.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="control-section">
+              <button 
+                className="btn primary" 
+                onClick={startDialogue}
+                disabled={isPlaying}
+                style={{ width: '100%', opacity: isPlaying ? 0.5 : 1 }}
+              >
+                {isPlaying ? 'Playing...' : 'Start Dialogue'}
+              </button>
+            </div>
+            
+            <div className="status">
+              {isPlaying 
+                ? `Dialogue ${dialogueIndex + 1}/${mode === 'toast' ? char.dialogues.toast.length : char.dialogues.fullscreen.length}`
+                : 'Ready'}
+            </div>
+          </div>
+          
+          {/* Dialogue Display */}
+          {isPlaying && currentDialogue && mode === 'toast' && (
+            <ToastDialogue
+              character={char.name}
+              text={currentDialogue}
+              portraitFrames={portraitFrames}
+              onComplete={handleDialogueComplete}
+            />
+          )}
+          
+          {isPlaying && currentDialogue && mode === 'fullscreen' && (
+            <FullscreenDialogue
+              character={char.name}
+              text={currentDialogue.text}
+              characterImage={generateCharacterImage(char.color, currentDialogue.pose)}
+              onComplete={handleDialogueComplete}
+            />
+          )}
+        </>
+      );
+    };
+    
+    // Mount the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DemoApp />);
+  </script>
+</body>
+</html>
